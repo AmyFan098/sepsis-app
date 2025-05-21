@@ -1,0 +1,43 @@
+---
+title: "BartPredicFinalProject"
+author: "Nuobing"
+format: html
+editor: visual
+---
+
+```{r}
+# Install once if needed
+# install.packages("dbarts")
+
+library(dbarts)
+library(pROC)
+
+# Load and clean
+data <- read.csv("bart_subset.csv")
+data <- na.omit(data)
+data$SepsisLabel <- as.factor(data$SepsisLabel)
+
+X <- data[, !(names(data) %in% c("SepsisLabel"))]
+X[] <- lapply(X, as.numeric)
+y <- data$SepsisLabel
+
+# Train BART
+set.seed(123)
+bart_model <- bart(x.train = X, y.train = as.numeric(y) - 1, keeptrees = TRUE)
+
+# Predict on the same data
+bart_preds <- predict(bart_model, X)
+bart_prob <- colMeans(bart_preds)  
+
+# Check alignment
+cat("Length y:", length(y), "\n")
+cat("Length bart_prob:", length(bart_prob), "\n")
+
+# AUC
+roc_result <- roc(as.numeric(y) - 1, bart_prob)
+print(auc(roc_result))
+
+# Save for Python
+write.csv(data.frame(BART_Prob = bart_prob), "bart_predictions.csv", row.names = FALSE)
+
+```
